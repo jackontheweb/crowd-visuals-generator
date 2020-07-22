@@ -1,17 +1,44 @@
 /* @pjs preload="a2.jpg"; */
 
 // https://www.openprocessing.org/sketch/186820
+import netP5.*;
+import oscP5.*;
+//OSC receive
+OscP5 oscP5;
+NetAddress myRemoteLocation;
 
-import processing.sound.*;
-AudioIn input;
-Amplitude analyzer;
+//int r is being received from max
+int r= 0;
+int v = 0;
+
+//import processing.sound.*;
+//AudioIn input;
+//Amplitude analyzer; 
 
 PImage pim;
 PVector[] p, speed;
 int nb = 3, imageW, imageH;
 float c1 = 4, c2 = 2;//noise coefficients, the higher the more strata// 40, 2
 
+
+
+
+
+  
 void setup() {
+  
+  // start oscP5, listening for incoming messages at port 12000 
+  oscP5 = new OscP5(this,12000);
+    /* myRemoteLocation is a NetAddress. a NetAddress takes 2 parameters,
+   * an ip address and a port number. myRemoteLocation is used as parameter in
+   * oscP5.send() when sending osc packets to another computer, device, 
+   * application. usage see below. for testing purposes the listening port
+   * and the port of the remote location address are the same, hence you will
+   * send messages back to this sketch.
+   */
+  myRemoteLocation = new NetAddress("127.0.0.1",12000);
+  oscP5.plug(this,"result","/test");
+  
   size(1000, 668);
   pim = loadImage("crowd.jpg");
   imageW = pim.width;
@@ -22,18 +49,18 @@ void setup() {
   
   
   
-  // Start listening to the microphone
+ // Start listening to the microphone
   // Create an Audio input and grab the 1st channel
-  input = new AudioIn(this, 0);
+// input = new AudioIn(this, 0);
 
   // start the Audio Input
-  input.start();
+ // input.start();
 
   // create a new Amplitude analyzer
-  analyzer = new Amplitude(this);
+//  analyzer = new Amplitude(this);
 
   // Patch the input to an volume analyzer
-  analyzer.input(input);
+ // analyzer.input(input);
 }
 
 void initNoise()
@@ -44,6 +71,7 @@ void initNoise()
     speed[i] = new PVector(random(-.02*(i+1), .02*(i+1)), random(-.02*(i+1), .02*(i+1)));//0, 0);//
   }
 }
+
 
 void draw() {
   //alter the noise coeeficients
@@ -70,7 +98,9 @@ int pattern(float px, float py)
 {
   float qx, qy, rx, ry, w, r, g, b;
   int myColor = 0;
-  int x = int(px), y = int(py);
+  int x = int(px); 
+  int y = int(py);
+  r = 0;
 
   px /= 100;
   py /= 100;
@@ -82,17 +112,26 @@ int pattern(float px, float py)
   w = noise(px + p[2].x + c2*rx, py + p[2].y + c2*ry);
 
 // GET AUDIO TO CONTORL CONSTRAINT AMOUNT;
- float con = analyzer.analyze();
 
-  x = constrain(int(x + map(500+con*1000, 0, width, 0, 50) * ((new PVector(rx, ry)).mag()-1)), 0, imageW-1);
-  y = constrain(int(y + map(500+con*1000, 0, height, 0, 50) * ((new PVector(qx, qy)).mag()-1)), 0, imageH-1);
+  x = constrain(int(x + map(1000+r*1000, 0, width, 0, 50) * ((new PVector(rx, ry)).mag()-1)), 0, imageW-1);
+  y = constrain(int(y + map(1000+r*1000, 0, height, 0, 50) * ((new PVector(qx, qy)).mag()-1)), 0, imageH-1);
   myColor = pim.pixels[x + y * imageW];
   return myColor;
+  
 }
+
+
 
 void mousePressed()
 {
   initNoise();
 }
 
-
+void oscEvent(OscMessage theOscMessage) {
+//  println("args: "+theOscMessage.get(0).intValue());
+  r = theOscMessage.get(0).intValue();
+  v = theOscMessage.get(1).intValue();
+  println(r);
+  println(v);
+ 
+}
